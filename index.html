@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Time Tracking App</title>
+    <style>
+      /* Minimal styling to keep UI usable. Replace with Tailwind or any framework later */
+      :root {
+        --accent: #4f46e5;
+        --muted: #6b7280;
+        font-family: Inter, system-ui, Arial;
+      }
+
+      body {
+        margin: 0;
+        padding: 20px;
+        background: #f7f7fb;
+        color: #111;
+      }
+
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .btn {
+        background: var(--accent);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+      }
+
+      .btn.ghost {
+        background: transparent;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+      }
+
+      .row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-top: 12px;
+      }
+
+      .card {
+        background: #fff;
+        padding: 12px;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+        margin-top: 12px;
+      }
+
+      input,
+      select {
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+      }
+
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      .activities {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .activity {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px;
+        border-radius: 8px;
+        background: #fafafa;
+        align-items: center;
+      }
+
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .danger {
+        color: #dc2626;
+      }
+
+      #dashboard {
+        margin-top: 12px;
+      }
+
+      #pie {
+        width: 300px;
+        height: 300px;
+      }
+
+      @media (max-width:700px) {
+        .row {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        #pie {
+          width: 200px;
+          height: 200px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <header>
+        <h1>Time Tracker</h1>
+        <div id="auth-area">
+          <!-- populated by auth.js -->
+        </div>
+      </header>
+
+      <!-- LOGIN / SIGNUP view -->
+      <div id="auth-view" class="card">
+        <h3>Sign in to continue</h3>
+        <div class="row">
+          <input id="email" placeholder="Email" />
+          <input id="password" type="password" placeholder="Password" />
+          <button id="signin-btn" class="btn">Sign in</button>
+          <button id="signup-btn" class="btn ghost">Sign up</button>
+        </div>
+        <div style="margin-top:8px;">
+          <button id="google-signin" class="btn">Sign in with Google</button>
+        </div>
+        <p class="small" style="margin-top:8px">Use Email/Google sign-in. Only logged-in users can log activities.</p>
+      </div>
+
+      <!-- MAIN APP view (hidden until auth) -->
+      <div id="app-view" class="hidden">
+        <div class="row">
+          <div>
+            <label for="date-picker">Select date</label>
+            <input id="date-picker" type="date" />
+          </div>
+
+          <div style="flex:1">
+            <label>Activity title</label>
+            <input id="activity-title" placeholder="e.g., Sleep, Work, Study" />
+          </div>
+
+          <div>
+            <label>Category</label>
+            <select id="activity-category">
+              <option>Work</option>
+              <option>Study</option>
+              <option>Sleep</option>
+              <option>Entertainment</option>
+              <option>Exercise</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div style="width:120px">
+            <label>Minutes</label>
+            <input id="activity-minutes" type="number" min="1" placeholder="30" />
+          </div>
+
+          <div style="align-self:flex-end">
+            <button id="add-activity-btn" class="btn">Add</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong id="total-hours">Total: 0m</strong>
+              <div class="small" id="remaining-minutes">You have 1440 minutes left</div>
+            </div>
+            <div>
+              <button id="analyse-btn" class="btn" disabled>Analyse</button>
+            </div>
+          </div>
+
+          <div class="activities" id="activities-list"></div>
+        </div>
+
+        <div id="dashboard" class="card">
+          <!-- Filled by UI when Analyse clicked or when date selected -->
+          <div id="no-data" class="">
+            <!-- "No data available" placeholder -->
+          </div>
+          <div id="charts" class="hidden">
+            <h3>Dashboard</h3>
+            <div id="summary"></div>
+            <canvas id="pie"></canvas>
+            <div id="details"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Firebase modules + app modules -->
+    <script type="module">
+      import './firebaseInit.js';
+      import { setupAuthUI } from './auth.js';
+      import { setupAppUI } from './ui.js';
+
+      // Initialize UI bindings after firebaseInit has run
+      setupAuthUI();
+      setupAppUI();
+    </script>
+  </body>
+
+</html>
